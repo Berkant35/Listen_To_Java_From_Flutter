@@ -1,5 +1,7 @@
 
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -11,50 +13,45 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  final ValueNotifier<String> timerCounter = ValueNotifier<String>("0.0");
+  StreamController<List<Object?>> controller = StreamController<List<Object?>>.broadcast();
+
+  late Stream stream;
   final Widget goodJob = const Text('Good job!');
   var eventChannel = const EventChannel("streamData");
+
   @override
   void initState() {
-
+    stream = controller.stream;
+    stream.listen((value) {
+      debugPrint('$value');
+    });
     initalizeOfChannelse();
+
     super.initState();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Center(
-        child: Row(
-          children: [
-
-            ValueListenableBuilder<String>(
-              builder: (BuildContext context, String value, Widget? child) {
-                // This builder will only get called when the _counter
-                // is updated.
-                return Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: <Widget>[
-                    Text('Time: $value'),
-                    child!,
-                  ],
-                );
-              },
-              valueListenable: timerCounter,
-              // The child parameter is most helpful if the child is
-              // expensive to build and does not depend on the value from
-              // the notifier.
-              child: goodJob,
-            )
-          ],
-        ),
-      ),
+      body: StreamBuilder<List<Object?>>(
+        stream: controller.stream,
+        builder: (BuildContext context, AsyncSnapshot<dynamic> snapshot) {
+          List<Object?>? listOfData = snapshot.data;
+          return listOfData != null && listOfData.isNotEmpty ? ListView.builder(
+              itemCount: listOfData.length,
+              itemBuilder: (context,index){
+               return Text(listOfData[index].toString());
+          }) : const Center(child: CircularProgressIndicator(),);
+        },),
     );
   }
 
   Future<void> initalizeOfChannelse() async {
     eventChannel.receiveBroadcastStream("listenList").listen((event) {
-      timerCounter.value = event;
+      controller.add(event);
     });
+
   }
+
+
 }
